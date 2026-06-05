@@ -4,6 +4,27 @@ Self-hosted build. base44 has been removed; the app now runs on its own
 **Node/Express + SQLite** backend and a Vite/React frontend. Everything runs on a
 single server (e.g. a Contabo VPS).
 
+## Tech Stack
+
+### Frontend
+- **Framework:** React + Vite
+- **Styling:** Vanilla CSS
+- **Components:** Custom UI components (Lucide React for icons)
+- **Routing:** React Router v6
+- **State Management:** React hooks + internal context API
+
+### Backend
+- **Server:** Node.js + Express
+- **Database:** SQLite via `better-sqlite3`
+- **Authentication:** Custom JWT-based email/password auth (bcrypt + jsonwebtoken)
+- **AI Integration:** OpenAI API (`gpt-4o-mini`) integration for persona synthesis and dynamic consultation engine recommendations
+- **File Processing:** `multer` for uploads, `pdf-parse` and `mammoth` for text extraction
+
+### Infrastructure & Deployment
+- **VPS/Hosting:** Ubuntu on Contabo VPS
+- **Process Manager:** PM2
+- **Reverse Proxy:** Nginx with SSL/TLS (Let's Encrypt / Certbot)
+
 ## What replaced base44
 
 | base44 feature | Replacement |
