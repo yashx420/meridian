@@ -1,0 +1,61 @@
+{
+  "name": "ConsultationResult",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string",
+      "description": "Reference to the OrgProfile ID"
+    },
+    "consultant_id": {
+      "type": "string",
+      "description": "Reference to the ConsultantProfile ID"
+    },
+    "synthesis": {
+      "type": "string",
+      "description": "Master briefing synthesis"
+    },
+    "persona_analyses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "persona_id": {
+            "type": "string"
+          },
+          "analysis": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Individual persona analyses"
+    },
+    "request_type": {
+      "type": "string",
+      "enum": [
+        "initial",
+        "elaboration",
+        "modification"
+      ],
+      "default": "initial",
+      "description": "Type of request that generated this result"
+    },
+    "user_request": {
+      "type": "string",
+      "description": "The user's request that triggered this generation (for elaborations/modifications)"
+    },
+    "tokens": {
+      "type": "number",
+      "description": "Total Claude tokens consumed for this consultation",
+      "default": 0
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "org_id",
+    "consultant_id",
+    "synthesis"
+  ]
+}

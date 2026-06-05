@@ -1,0 +1,16 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user",
+        "client"
+      ],
+      "default": "user",
+      "description": "admin/user = consultant with full access, client = read-only consultation view"
+    }
+  }
+}

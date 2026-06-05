@@ -1,0 +1,39 @@
+{
+  "name": "KnowledgeDoc",
+  "type": "object",
+  "properties": {
+    "profile_type": {
+      "type": "string",
+      "enum": [
+        "consultant",
+        "org"
+      ],
+      "description": "Which twin this document belongs to"
+    },
+    "profile_id": {
+      "type": "string"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "file_url": {
+      "type": "string"
+    },
+    "extracted_text": {
+      "type": "string"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "PUBLIC",
+        "CONFIDENTIAL",
+        "TOP SECRET"
+      ],
+      "default": "CONFIDENTIAL"
+    }
+  },
+  "required": [
+    "file_name",
+    "profile_type"
+  ]
+}

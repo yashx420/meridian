@@ -1,0 +1,46 @@
+{
+  "name": "ConsultationThread",
+  "type": "object",
+  "properties": {
+    "org_id": {
+      "type": "string",
+      "description": "Reference to the OrgProfile ID"
+    },
+    "consultant_id": {
+      "type": "string",
+      "description": "Reference to the ConsultantProfile ID"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "seneca"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "Array of conversation messages"
+    },
+    "last_message_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of the last message in the thread"
+    }
+  },
+  "required": [
+    "org_id",
+    "consultant_id"
+  ]
+}

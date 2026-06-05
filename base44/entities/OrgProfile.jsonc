@@ -1,0 +1,61 @@
+{
+  "name": "OrgProfile",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "description": "Display name for the Org Twin"
+    },
+    "org_name": {
+      "type": "string"
+    },
+    "industry": {
+      "type": "string"
+    },
+    "size": {
+      "type": "string"
+    },
+    "headquarters": {
+      "type": "string"
+    },
+    "current_tech_stack": {
+      "type": "string"
+    },
+    "compliance_frameworks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "key_challenges": {
+      "type": "string"
+    },
+    "engagement_trigger": {
+      "type": "string"
+    },
+    "budget_envelope": {
+      "type": "string"
+    },
+    "timeline": {
+      "type": "string"
+    },
+    "stakeholders": {
+      "type": "string"
+    },
+    "raw_context": {
+      "type": "string",
+      "description": "Full conversation transcript from onboarding"
+    },
+    "calibration_pct": {
+      "type": "number",
+      "default": 0
+    },
+    "is_calibrated": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "display_name"
+  ]
+}

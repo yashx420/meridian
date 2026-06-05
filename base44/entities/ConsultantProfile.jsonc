@@ -1,0 +1,61 @@
+{
+  "name": "ConsultantProfile",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "description": "Display name for the Digital Twin"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "role_title": {
+      "type": "string"
+    },
+    "years_experience": {
+      "type": "string"
+    },
+    "sectors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expertise_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "methodologies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "decision_style": {
+      "type": "string"
+    },
+    "communication_style": {
+      "type": "string"
+    },
+    "notable_engagements": {
+      "type": "string"
+    },
+    "raw_context": {
+      "type": "string",
+      "description": "Full conversation transcript from onboarding"
+    },
+    "calibration_pct": {
+      "type": "number",
+      "default": 0
+    },
+    "is_calibrated": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "display_name"
+  ]
+}
