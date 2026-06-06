@@ -7,17 +7,25 @@ single server (e.g. a Contabo VPS).
 ## Tech Stack
 
 ### Frontend
-- **Framework:** React + Vite
-- **Styling:** Vanilla CSS
-- **Components:** Custom UI components (Lucide React for icons)
+- **Framework:** React 18 + Vite
+- **Styling:** Tailwind CSS (with `tailwindcss-animate`, `tailwind-merge`, and `clsx` for utility management)
+- **UI Components:** Radix UI primitives (`@radix-ui/react-*`) for accessible components
+- **Animations:** Framer Motion
 - **Routing:** React Router v6
-- **State Management:** React hooks + internal context API
+- **State Management & Data Fetching:** React Query (`@tanstack/react-query`), React context hooks
+- **Forms & Validation:** React Hook Form (`react-hook-form`) + Zod schema validation
+- **Data Visualization:** Recharts
+- **Maps:** React Leaflet
+- **Rich Text & Content:** React Quill, React Markdown
+- **PDF Generation:** jsPDF + html2canvas
+- **Payments:** Stripe (`@stripe/react-stripe-js`, `@stripe/stripe-js`)
+- **Other Utilities:** Date-fns, moment, lodash, lucide-react (icons), sonner/react-hot-toast (notifications)
 
 ### Backend
 - **Server:** Node.js + Express
 - **Database:** SQLite via `better-sqlite3`
 - **Authentication:** Custom JWT-based email/password auth (bcrypt + jsonwebtoken)
-- **AI Integration:** OpenAI API (`gpt-4o-mini`) integration for persona synthesis and dynamic consultation engine recommendations
+- **AI Integration:** OpenAI API integration for persona synthesis and dynamic consultation engine recommendations
 - **File Processing:** `multer` for uploads, `pdf-parse` and `mammoth` for text extraction
 
 ### Infrastructure & Deployment
@@ -119,7 +127,7 @@ pm2 save && pm2 startup
 
 ```nginx
 server {
-    server_name your-domain.com;
+    server_name consultantengine.com www.consultantengine.com;
 
     location / {
         proxy_pass http://127.0.0.1:8787;
@@ -131,7 +139,7 @@ server {
 }
 ```
 
-Then run `certbot --nginx -d your-domain.com` for a free TLS certificate.
+Then run `certbot --nginx -d consultantengine.com -d www.consultantengine.com` for a free TLS certificate.
 
 After the first deploy, rebuild the frontend (`npm run build`) whenever you change
 frontend code, and restart the backend (`pm2 restart meridian`) whenever you change
