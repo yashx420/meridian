@@ -383,17 +383,39 @@ async function onboardingChat(body) {
 
   const response = await createMessage({
     model: MODEL,
-    max_tokens: 800,
+    // Headroom so the JSON reply (message + ~11 extracted_fields) completes.
+    // At 800 a late-stage turn would truncate mid-output and cut off Seneca's
+    // last sentence in the saved transcript.
+    max_tokens: 1800,
     system: systemPrompt,
     messages: claudeMessages,
   });
 
-  const raw = response.content[0].text;
+  return parseOnboardingReply(response.content[0].text);
+}
+
+// Parse the model's JSON onboarding reply. If the JSON is incomplete (e.g. the
+// output was truncated mid-stream), salvage at least the conversational
+// `message` so a partial response never leaks raw JSON or a cut-off line into
+// the saved transcript.
+function parseOnboardingReply(raw) {
+  const text = raw || '';
   try {
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    return JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : text);
   } catch {
-    return { message: raw, calibration_pct: 50, extracted_fields: {} };
+    // Extract the "message" string value even from incomplete JSON — try a
+    // closed string first, then an open one truncated before its closing quote.
+    const m = text.match(/"message"\s*:\s*"((?:\\.|[^"\\])*)"/)
+      || text.match(/"message"\s*:\s*"((?:\\.|[^"\\])*)$/);
+    let message = m ? m[1] : text;
+    try { message = JSON.parse(`"${message.replace(/\\?$/, '')}"`); } catch { /* leave as-is */ }
+    const pctMatch = text.match(/"calibration_pct"\s*:\s*(\d+)/);
+    return {
+      message,
+      calibration_pct: pctMatch ? Number(pctMatch[1]) : 50,
+      extracted_fields: {},
+    };
   }
 }
 
