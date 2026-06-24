@@ -1255,16 +1255,22 @@ function Toggle({ label, checked, onChange }) {
 
 /* ── Phase4 wrapper to track synthesis and pass to download ── */
 function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, onSynthesis }) {
-  // Resolve the assembled team (with roles) to concrete persona objects. Falls
-  // back to the default core team if none was assembled.
-  const teamPersonas = useRef(
-    (team && team.length ? team : [])
-      .map((t) => {
-        if (t.dynamicPersona) return { ...t.dynamicPersona, teamRole: t.role };
-        return PERSONA_BY_ID[t.personaId] ? { ...PERSONA_BY_ID[t.personaId], teamRole: t.role } : null;
+  // Resolve a team descriptor (either an assembly list of {personaId, role,
+  // dynamicPersona} or a list of already-resolved persona objects) into concrete
+  // persona objects carrying their team role.
+  const resolveTeam = (t) =>
+    (t && t.length ? t : [])
+      .map((m) => {
+        if (m.dynamicPersona) return { ...m.dynamicPersona, teamRole: m.role };
+        if (m.personaId) return PERSONA_BY_ID[m.personaId] ? { ...PERSONA_BY_ID[m.personaId], teamRole: m.role } : null;
+        // Already a resolved persona object (e.g. rehydrated from a saved result).
+        return m.id && m.role ? m : null;
       })
-      .filter(Boolean)
-  ).current;
+      .filter(Boolean);
+
+  // The team is kept in state so a saved consultation can rehydrate the exact
+  // roster that produced its analyses (persona ids must line up for lookups).
+  const [teamPersonas, setTeamPersonas] = useState(() => resolveTeam(team));
 
   const [stage, setStage] = useState('loading');
   const [ps, setPs] = useState(teamPersonas.map(() => ({ status: 'pending', progress: 0 })));
@@ -1326,12 +1332,31 @@ function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, onSyn
         if (existing.length > 0) {
           const latest = existing[0];
           setSynthesis(latest.synthesis);
+
+          // Rehydrate the exact team that produced these analyses so persona ids
+          // line up with the saved persona_analyses keys. Older records predate
+          // the saved team, so fall back to the current roster for those.
+          const savedTeam = resolveTeam(latest.team);
+          const personaList = savedTeam.length ? savedTeam : teamPersonas;
+          if (savedTeam.length) setTeamPersonas(savedTeam);
+
+          // Map saved analyses to personas by id, with a positional fallback for
+          // legacy records whose persona_ids predate the current id scheme.
+          const analyses = latest.persona_analyses || [];
+          const byId = {};
+          analyses.forEach(pa => { byId[pa.persona_id] = pa.analysis; });
           const personaMap = {};
-          if (latest.persona_analyses) {
-            latest.persona_analyses.forEach(pa => { personaMap[pa.persona_id] = pa.analysis; });
-          }
+          personaList.forEach((p, i) => {
+            const a = byId[p.id] != null ? byId[p.id] : (analyses[i] ? analyses[i].analysis : '');
+            if (a) personaMap[p.id] = a;
+          });
+
           setResults(personaMap);
-          setPs(teamPersonas.map(() => ({ status: 'complete', progress: 100 })));
+          // Only mark a persona complete if its analysis actually loaded, so the
+          // "View analysis" link never opens an empty panel.
+          setPs(personaList.map(p => personaMap[p.id]
+            ? { status: 'complete', progress: 100 }
+            : { status: 'pending', progress: 0 }));
           setStage('done');
         } else {
           runConsultation();
@@ -1381,6 +1406,9 @@ function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, onSyn
         consultant_id: twinContext.id,
         synthesis: newSynthesis,
         persona_analyses: personaAnalyses,
+        // Persist the resolved roster so a reload can rehydrate the same persona
+        // ids and render each "View analysis" against the right analysis.
+        team: teamPersonas,
         request_type: 'initial',
         tokens: totalTokens,
         generated_at: new Date().toISOString()
@@ -1451,7 +1479,7 @@ function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, onSyn
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {teamPersonas.map((p, i) => {
-              const s = ps[i];
+              const s = ps[i] || { status: 'pending', progress: 0 };
               const state = s.status === 'complete' ? 'verified' : s.status === 'consulting' ? 'in progress' : 'queued';
               return (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-2)' }}>
@@ -1467,7 +1495,7 @@ function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, onSyn
       )}
       <div className="persona-grid">
         {teamPersonas.map((p, i) => {
-          const s = ps[i];
+          const s = ps[i] || { status: 'pending', progress: 0 };
           const Ic = I[p.icon];
           const cls = s.status === 'consulting' ? 'consulting' : s.status === 'complete' ? 'complete' : '';
           return (
@@ -1482,7 +1510,7 @@ function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, onSyn
               {(s.status === 'consulting' || s.status === 'complete') && <div className="p-progress"><div className="p-progress-fill" style={{ width: `${s.progress}%` }} /></div>}
               <div className="p-foot">
                 <span className="p-foot-stat">Confidence {p.confidence || 93}%</span>
-                {s.status === 'complete' && <span className="p-analysis-link" onClick={() => setViewPersona(p)}>View analysis <I.ArrowRight /></span>}
+                {s.status === 'complete' && results[p.id] && <span className="p-analysis-link" onClick={() => setViewPersona(p)}>View analysis <I.ArrowRight /></span>}
               </div>
             </div>
           );
