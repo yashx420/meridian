@@ -862,7 +862,7 @@ export default function MeridianTCE() {
         <div className="top-left">
           <div className="brand"><div className="brand-mark"><I.Meridian size={22} /></div><div className="brand-name">Meridian</div></div>
           <div className="brand-sep"></div>
-          <div style={{ display: 'flex', alignItems: 'center' }}><div className="tce-label">The Consultation Engine</div><div className="tce-tag">TCE</div></div>
+          <div style={{ display: 'flex', alignItems: 'center' }}><div className="tce-label">The Consultant Engine</div><div className="tce-tag">TCE</div></div>
         </div>
         {activeTab === 'consultation' && phase < 4 && (
           <div className="stepper">
