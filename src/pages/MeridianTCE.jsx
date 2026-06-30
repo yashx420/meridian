@@ -438,6 +438,30 @@ function AnalysisModal({ persona, analysis, onClose }) {
   );
 }
 
+/* ── Problem-context banner (single statement on top, full summary on hover) ── */
+function ProblemContextBanner({ summary }) {
+  const [hover, setHover] = useState(false);
+  if (!summary?.statement) return null;
+  return (
+    <div style={{ maxWidth: 760, margin: '0 auto 14px', position: 'relative' }}>
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'linear-gradient(135deg, var(--indigo-tint), var(--amber-tint))', border: '1px solid var(--indigo-tint-2)', borderRadius: 'var(--r-md)', cursor: 'default' }}
+      >
+        <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--indigo-deep)', flexShrink: 0 }}>Problem context</span>
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary.statement}</span>
+        {summary.summary && <span style={{ marginLeft: 'auto', flexShrink: 0, width: 16, height: 16, borderRadius: '50%', border: '1px solid var(--indigo)', color: 'var(--indigo-deep)', fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center' }}>i</span>}
+      </div>
+      {hover && summary.summary && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 50, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--line-2)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-2)', fontSize: 12.5, lineHeight: 1.6, color: 'var(--ink-1)' }}>
+          {summary.summary}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Event bus for follow-up ── */
 const followUpBus = {
   listeners: [],
@@ -721,6 +745,8 @@ export default function MeridianTCE() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingMode, setEditingMode] = useState(null); // 'twin' | 'org' | null for modal editing from settings
   const [team, setTeam] = useState(null); // assembled specialist team: [{ personaId, role }]
+  const [contextSummary, setContextSummary] = useState(null); // { statement, summary } problem-context recap
+  const summarisedBriefRef = useRef(null); // guards against re-summarising the same brief
 
   const handleLogout = async () => {
     await base44.auth.logout();
@@ -803,6 +829,18 @@ export default function MeridianTCE() {
     orgData.stakeholders && `Key stakeholders: ${orgData.stakeholders}`,
     orgData.raw_context && `\n\nDetailed context from onboarding:\n${orgData.raw_context.slice(0, 2000)}`,
   ].filter(Boolean).join('\n') : '';
+
+  // Once onboarding is done and we're into team assembly / consultation, distil
+  // the brief into a one-line problem-context statement (shown on top, with the
+  // fuller summary on hover). Cached per-brief so it only generates once.
+  useEffect(() => {
+    if (phase < 3 || !brief || !orgData?.id) return;
+    if (summarisedBriefRef.current === brief) return;
+    summarisedBriefRef.current = brief;
+    base44.functions.invoke('summariseContext', { brief, twinContext: twinData, orgContext: orgData })
+      .then(res => { if (res.data?.statement) setContextSummary(res.data); })
+      .catch(() => { summarisedBriefRef.current = null; });
+  }, [phase, brief, orgData?.id, twinData]);
 
   const consultantInitials = twinData?.full_name
     ? twinData.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -986,6 +1024,7 @@ export default function MeridianTCE() {
         {/* Phase 3: Interactive Specialist Team Assembly */}
         {activeTab === 'consultation' && phase === 3 && (
           <div className="content">
+            <ProblemContextBanner summary={contextSummary} />
             <TeamAssembly
               iconSet={I}
               orgName={orgDisplayName}
@@ -1000,6 +1039,7 @@ export default function MeridianTCE() {
         {/* Consultation Tab - Only Phase 4 */}
         {activeTab === 'consultation' && phase === 4 && (
           <div className="content">
+            <ProblemContextBanner summary={contextSummary} />
             <Phase4ConsultationWrapper twinContext={twinData} orgContext={orgData} brief={brief} team={activeTeam} onSynthesis={setSynthesis} />
           </div>
         )}

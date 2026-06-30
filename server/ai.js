@@ -171,9 +171,15 @@ async function personaConsult(body) {
   if (mode === 'persona') {
     let persona = PERSONA_PROMPTS[personaId];
     if (!persona && body.dynamicPersona) {
+      const dp = body.dynamicPersona;
+      // User-defined specialists can carry extra guidance describing how they
+      // should approach the engagement; fold it into the system prompt.
+      const extra = dp.additionalInfo
+        ? `\nAdditional guidance for this specialist: ${dp.additionalInfo}`
+        : '';
       persona = {
-        role: body.dynamicPersona.role,
-        system: `You are a senior specialist in the role of ${body.dynamicPersona.role}, specialising in ${body.dynamicPersona.spec}.
+        role: dp.role,
+        system: `You are a senior specialist in the role of ${dp.role}, specialising in ${dp.spec}.${extra}
 CRITICAL: Only reference facts, challenges, tech stack, and stakeholders provided in the Consultant and Org context below.
 Do NOT invent or assume information not explicitly stated.
 Provide a detailed assessment based on your specialist domain.
@@ -590,10 +596,58 @@ CRITICAL: Return ONLY a JSON array of 3 strings. Example:
   }
 }
 
+const SUMMARISE_CONTEXT_SYSTEM = `You are Seneca, the sovereign reasoning host of the Meridian Team Consultation Engine.
+Summarise the core problem context of this engagement for a board-level reader.
+CRITICAL: Only use facts provided in the Consultant and Org context and brief. Do NOT invent details.
+Return ONLY a valid JSON object, no markdown, matching this schema:
+{
+  "statement": "one concise sentence (max ~160 chars) naming the central problem or objective driving this engagement",
+  "summary": "2 to 4 sentences expanding on the problem context: the situation, what is at stake, and the desired outcome"
+}
+CRITICAL: Never use em dashes (-). Replace any em dash with a hyphen.`;
+
+async function summariseContext(body) {
+  const { brief, twinContext, orgContext } = body;
+  const userMessage = `
+## Consultant Digital Twin Context
+${JSON.stringify(twinContext, null, 2)}
+
+## Org Twin / Client Dossier
+${JSON.stringify(orgContext, null, 2)}
+
+## Engagement Brief
+${brief}
+
+Return the JSON object now.
+`.trim();
+
+  const response = await createMessage({
+    model: MODEL,
+    max_tokens: 400,
+    system: SUMMARISE_CONTEXT_SYSTEM,
+    messages: [{ role: 'user', content: userMessage }],
+  });
+
+  const raw = response.content[0].text;
+  try {
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    return {
+      statement: stripDashes(parsed.statement || ''),
+      summary: stripDashes(parsed.summary || ''),
+    };
+  } catch {
+    // Fall back to the first line of the brief so the banner still renders.
+    const first = stripDashes((brief || '').split('\n').find(Boolean) || 'Engagement context');
+    return { statement: first.slice(0, 160), summary: stripDashes(brief || '') };
+  }
+}
+
 export const aiFunctions = {
   personaConsult,
   onboardingChat,
   sidebarChat,
   assembleTeam,
   generateNextExecutions,
+  summariseContext,
 };

@@ -10,6 +10,13 @@ export default function TeamAssembly({ iconSet, orgName, orgData, twinData, brie
   const [query, setQuery] = useState("");
   const [suggestedCount, setSuggestedCount] = useState(0);
 
+  // Custom specialist creation (user-defined personas).
+  const [showCreate, setShowCreate] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [newInfo, setNewInfo] = useState("");
+  const [createError, setCreateError] = useState("");
+
   useEffect(() => {
     let active = true;
     const fetchTeam = async () => {
@@ -69,6 +76,40 @@ export default function TeamAssembly({ iconSet, orgName, orgData, twinData, brie
   };
   const removePersona = (id) => setTeam((t) => t.filter((m) => m.personaId !== id));
   const setRole = (id, role) => setTeam((t) => t.map((m) => (m.personaId === id ? { ...m, role } : m)));
+
+  // Create a user-defined specialist and drop it straight onto the team, unless
+  // one with the same name already exists in the library or the current team.
+  const createCustomPersona = () => {
+    const name = newName.trim();
+    const desc = newDesc.trim();
+    if (!name || !desc) return;
+    const id = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    const nameLower = name.toLowerCase();
+    const exists =
+      dynamicLibrary.some((p) => p.id === id || p.role.toLowerCase() === nameLower) ||
+      team.some((m) => m.dynamicPersona && (m.dynamicPersona.id === id || m.dynamicPersona.role.toLowerCase() === nameLower));
+    if (exists) {
+      setCreateError("A specialist with that name already exists.");
+      return;
+    }
+    const persona = {
+      id,
+      role: name,
+      spec: desc,
+      icon: "Sparkle",
+      confidence: 90,
+      core: false,
+      custom: true,
+      ...(newInfo.trim() ? { additionalInfo: newInfo.trim() } : {}),
+    };
+    setDynamicLibrary((prev) => [...prev, persona]);
+    setTeam((prev) => [...prev, { personaId: id, role: "Contributor", dynamicPersona: persona }]);
+    setNewName("");
+    setNewDesc("");
+    setNewInfo("");
+    setCreateError("");
+    setShowCreate(false);
+  };
 
   const onDragEnd = (result) => {
     const { source, destination } = result;
@@ -146,13 +187,54 @@ export default function TeamAssembly({ iconSet, orgName, orgData, twinData, brie
           {/* Library */}
           <div style={{ background: "var(--surface)", border: "1px solid var(--line-2)", borderRadius: "var(--r-md)", overflow: "hidden" }}>
             <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line-1)" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", marginBottom: 8 }}>Persona library</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)" }}>Persona library</div>
+                <button
+                  onClick={() => { setShowCreate((v) => !v); setCreateError(""); }}
+                  style={{ flexShrink: 0, padding: "4px 9px", border: "1px solid var(--line-2)", borderRadius: 6, fontSize: 10.5, fontWeight: 600, color: "var(--indigo-deep)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  {showCreate ? "Close" : "+ Create specialist"}
+                </button>
+              </div>
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Filter specialists…"
                 style={{ width: "100%", padding: "7px 10px", border: "1px solid var(--line-2)", borderRadius: 7, fontSize: 12, color: "var(--ink)", background: "var(--bg-tint)", outline: "none", fontFamily: "inherit" }}
               />
+              {showCreate && (
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8, padding: 10, background: "var(--bg-tint)", border: "1px solid var(--line-2)", borderRadius: 8 }}>
+                  <input
+                    value={newName}
+                    onChange={(e) => { setNewName(e.target.value); if (createError) setCreateError(""); }}
+                    placeholder="Specialist name (e.g. AI Ethics Officer)"
+                    style={{ width: "100%", padding: "7px 10px", border: "1px solid var(--line-2)", borderRadius: 7, fontSize: 12, color: "var(--ink)", background: "var(--surface)", outline: "none", fontFamily: "inherit" }}
+                  />
+                  <input
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    placeholder="Short description / specialisation"
+                    style={{ width: "100%", padding: "7px 10px", border: "1px solid var(--line-2)", borderRadius: 7, fontSize: 12, color: "var(--ink)", background: "var(--surface)", outline: "none", fontFamily: "inherit" }}
+                  />
+                  <textarea
+                    value={newInfo}
+                    onChange={(e) => setNewInfo(e.target.value)}
+                    placeholder="Additional info (optional) — how this specialist should approach the engagement"
+                    rows={2}
+                    style={{ width: "100%", padding: "7px 10px", border: "1px solid var(--line-2)", borderRadius: 7, fontSize: 12, color: "var(--ink)", background: "var(--surface)", outline: "none", fontFamily: "inherit", resize: "vertical" }}
+                  />
+                  {createError && <div style={{ fontSize: 10.5, color: "#b91c1c" }}>{createError}</div>}
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button
+                      onClick={createCustomPersona}
+                      disabled={!newName.trim() || !newDesc.trim()}
+                      style={{ padding: "6px 12px", border: "none", borderRadius: 7, fontSize: 11.5, fontWeight: 600, color: "#fff", background: "var(--indigo)", cursor: (!newName.trim() || !newDesc.trim()) ? "default" : "pointer", opacity: (!newName.trim() || !newDesc.trim()) ? 0.5 : 1, fontFamily: "inherit" }}
+                    >
+                      Add specialist
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <Droppable droppableId="library">
               {(provided) => (
