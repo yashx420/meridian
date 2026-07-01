@@ -1041,7 +1041,7 @@ export default function MeridianTCE() {
         {activeTab === 'consultation' && phase === 4 && (
           <div className="content">
             <ProblemContextBanner summary={contextSummary} />
-            <Phase4ConsultationWrapper twinContext={twinData} orgContext={orgData} brief={brief} team={activeTeam} onSynthesis={setSynthesis} />
+            <Phase4ConsultationWrapper twinContext={twinData} orgContext={orgData} brief={brief} team={activeTeam} assembledThisSession={!!(team && team.length)} onSynthesis={setSynthesis} />
           </div>
         )}
       </div>
@@ -1295,7 +1295,7 @@ function Toggle({ label, checked, onChange }) {
 }
 
 /* ── Phase4 wrapper to track synthesis and pass to download ── */
-function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, onSynthesis }) {
+function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, assembledThisSession, onSynthesis }) {
   // Resolve a team descriptor (either an assembly list of {personaId, role,
   // dynamicPersona} or a list of already-resolved persona objects) into concrete
   // persona objects carrying their team role.
@@ -1357,6 +1357,14 @@ function Phase4ConsultationWrapper({ twinContext, orgContext, brief, team, onSyn
   useEffect(() => {
     // Wait until both IDs are actually resolved before doing anything
     if (!twinContext?.id || !orgContext?.id) return;
+
+    // A team assembled in this session (via Phase 3) always runs a fresh
+    // consultation, so newly added or custom specialists are actually consulted
+    // instead of loading a previously cached result.
+    if (assembledThisSession) {
+      runConsultation();
+      return;
+    }
 
     const loadExisting = async () => {
       try {
