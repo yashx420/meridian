@@ -927,7 +927,7 @@ export default function MeridianTCE() {
           <div className="brand-sep"></div>
           <div style={{ display: 'flex', alignItems: 'center' }}><div className="tce-label">The Consultant Engine</div><div className="tce-tag">TCE</div></div>
         </div>
-        {activeTab === 'consultation' && phase < 4 && (
+        {activeTab === 'consultation' && (
           <div className="stepper">
             {[
               { n: 1, label: 'Digital Twin', d: 1 },
