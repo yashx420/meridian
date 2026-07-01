@@ -807,15 +807,8 @@ export default function MeridianTCE() {
   // stepper or loading a saved result), fall back to the default core team.
   const activeTeam = team && team.length ? team : DEFAULT_TEAM;
 
-  if (!authChecked) return null;
-
-  if (currentUser?.role === 'client') {
-    return <ClientView user={currentUser} />;
-  }
-
-
-
-  // Build brief from org data
+  // Build brief from org data. Defined before the early returns below so the
+  // summary effect (also a hook) is always evaluated in the same order.
   const brief = orgData ? [
     orgData.org_name && `Organisation: ${orgData.org_name}`,
     orgData.industry && `Industry: ${orgData.industry}`,
@@ -841,6 +834,14 @@ export default function MeridianTCE() {
       .then(res => { if (res.data?.statement) setContextSummary(res.data); })
       .catch(() => { summarisedBriefRef.current = null; });
   }, [phase, brief, orgData?.id, twinData]);
+
+  if (!authChecked) return null;
+
+  if (currentUser?.role === 'client') {
+    return <ClientView user={currentUser} />;
+  }
+
+
 
   const consultantInitials = twinData?.full_name
     ? twinData.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
