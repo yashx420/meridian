@@ -111,6 +111,8 @@ function formatInline(text) {
 export default function ExecuteReport({ twinContext, orgContext, brief, question, messageHistory, team, iconSet, onComplete }) {
   const [stage, setStage] = useState('analyzing'); // analyzing | synthesizing | done
   const activeSpecialists = team || PERSONAS;
+  // The deep-dive consults every assembled specialist, so every index is relevant.
+  const relevantIndices = activeSpecialists.map((_, i) => i);
   const [ps, setPs] = useState(activeSpecialists.map(() => ({ status: 'pending', progress: 0 })));
   const [results, setResults] = useState({});
   const [synthesis, setSynthesis] = useState('');
@@ -326,10 +328,10 @@ export default function ExecuteReport({ twinContext, orgContext, brief, question
         {/* Personas - Analyzing Phase */}
         {stage !== 'done' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 16 }}>
-            {PERSONAS.map((p, i) => {
+            {activeSpecialists.map((p, i) => {
               const isRelevant = relevantIndices.includes(i);
               if (!isRelevant) return null;
-              const s = ps[i];
+              const s = ps[i] || { status: 'pending', progress: 0 };
               const Ic = iconSet[p.icon];
               return (
                 <div key={p.id} onClick={() => results[p.id] ? setViewPersona(p) : elaboratePersona(p.id)} style={{
@@ -382,7 +384,7 @@ export default function ExecuteReport({ twinContext, orgContext, brief, question
 
             {/* Personas Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
-              {PERSONAS.map((p) => {
+              {activeSpecialists.map((p) => {
                 const Ic = iconSet[p.icon];
                 return (
                   <div key={p.id} onClick={() => setViewPersona(p)} style={{
