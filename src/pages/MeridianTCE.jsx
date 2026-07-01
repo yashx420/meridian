@@ -737,12 +737,17 @@ const DEMO_ORG = {
 export default function MeridianTCE() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [phase, setPhase] = useState(4);
+  // Phase and tab persist across reloads so a browser refresh/reopen resumes
+  // where the user left off instead of restarting the flow.
+  const [phase, setPhase] = useState(() => {
+    const p = Number(localStorage.getItem('meridian_phase'));
+    return p >= 1 && p <= 4 ? p : 4;
+  });
   const [twinData, setTwinData] = useState(null);
   const [orgData, setOrgData] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [synthesis, setSynthesis] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('meridian_tab') || 'dashboard');
   const [editingMode, setEditingMode] = useState(null); // 'twin' | 'org' | null for modal editing from settings
   const [team, setTeam] = useState(null); // assembled specialist team: [{ personaId, role }]
   const [contextSummary, setContextSummary] = useState(null); // { statement, summary } problem-context recap
@@ -758,6 +763,7 @@ export default function MeridianTCE() {
   // On reload, loadDemo finds no profiles and drops into Phase-1 onboarding.
   const handleResetDemo = async () => {
     await base44.demo.reset();
+    try { localStorage.removeItem('meridian_phase'); localStorage.removeItem('meridian_tab'); } catch { /* ignore */ }
     window.location.assign('/');
   };
 
@@ -782,25 +788,43 @@ export default function MeridianTCE() {
         const orgs = await base44.entities.OrgProfile.filter({ created_by: me.email }, undefined, 1);
         if (twins.length > 0) setTwinData(twins[0]);
         if (orgs.length > 0) setOrgData(orgs[0]);
-        
-        // Check if user just verified email (new signup) or has no twins yet
+
         const params = new URLSearchParams(window.location.search);
         const isNewSignup = params.get('verified') === 'true';
-        const noTwinsYet = twins.length === 0 && orgs.length === 0;
-        
-        if (isNewSignup || noTwinsYet) {
+
+        // Resume based on how far onboarding got, rather than restarting:
+        // - no consultant profile -> Phase 1 (build Digital Twin)
+        // - consultant but no org  -> Phase 2 (build Org Twin)
+        // - both exist             -> restore the saved phase (>=3), default consultation
+        if (isNewSignup || twins.length === 0) {
           setPhase(1);
           setActiveTab('consultation');
+        } else if (orgs.length === 0) {
+          setPhase(2);
+          setActiveTab('consultation');
+        } else {
+          const saved = Number(localStorage.getItem('meridian_phase'));
+          setPhase(saved >= 3 && saved <= 4 ? saved : 4);
+        }
+        if (isNewSignup) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       } catch (e) {
         console.error('Failed to load demo data:', e);
-        setPhase(1);
-        setActiveTab('consultation');
+        // Only drop into onboarding if we have no saved progress to resume.
+        const saved = Number(localStorage.getItem('meridian_phase'));
+        if (!(saved >= 3 && saved <= 4)) {
+          setPhase(1);
+          setActiveTab('consultation');
+        }
       }
     };
     loadDemo();
   }, []);
+
+  // Persist navigation so a reload / browser reopen resumes in place.
+  useEffect(() => { try { localStorage.setItem('meridian_phase', String(phase)); } catch { /* ignore */ } }, [phase]);
+  useEffect(() => { try { localStorage.setItem('meridian_tab', activeTab); } catch { /* ignore */ } }, [activeTab]);
 
   // Phase 3 is now the interactive Team Assembly screen; no auto-transition.
   // If we somehow reach Phase 4 without an assembled team (e.g. jumping via the
